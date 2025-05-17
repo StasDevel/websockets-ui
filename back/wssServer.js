@@ -2,29 +2,9 @@ import { WebSocketServer } from "ws";
 import indexHandler from "./handlers/indexHandler.js";
 import generateUUID from './helpers/uuid.js'
 
-// const wss = new WebSocketServer({port: 3000});
-
-// const data = {
-//     users: {    }
-// }
-
-// wss.on('connection', (ws) => {
-//     console.log("Новое подключение")
-//     // console.log(wss.clients )
-
-//     ws.on('message', (message) => {
-//         const type = JSON.parse(message.toString()).type
-
-//         indexHandler(type, data)
-//         console.log()
-//     })
-
-// })
-
-
 class HandmadeESocket {
     actions = []
-    data = {users: {}}
+    data = {users: {}, rooms: {}}
 
     on(actionType, callback) {
         this.actions.push({ actionType, callback });
@@ -34,17 +14,18 @@ class HandmadeESocket {
         const wss = new WebSocketServer({port});
 
         wss.on('connection', (ws) => {
-            console.log('Новое подключение');
-
             ws.on('message', (message) => {
                 try {
                     const dataParsed = JSON.parse(message.toString());
+
                     const type = dataParsed.type;
+                    const passedData = dataParsed.data;
+                    const id = dataParsed.id
+                    
 
                     this.actions.forEach(({ actionType, callback }) => {
                         if (actionType === type) {
-                            // callback({ userId, data });
-                            callback(dataParsed, this.data)
+                            callback(passedData, this.data, ws)
                         }
                     });
                 } catch (e) {
@@ -52,7 +33,14 @@ class HandmadeESocket {
                 }
             });
 
+            ws.on('close', () => {
+                console.log('Пользователь отключился')
+            })
         })
+
+        
+
+        console.log(`Сервер websocket запущен на порту: ${port}`)
     }
 }
 
