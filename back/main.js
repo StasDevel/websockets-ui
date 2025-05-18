@@ -49,7 +49,6 @@ server.on("reg", (passedData, serverData, ws, wss) => {
 });
 
 server.on("create_room", (passedData, serverData, ws, wss) => {
-  console.log(ws.userGameInfo);
   if (!ws.userGameInfo.roomInfo.createdRoomId) {
     createNewRoom(serverData, ws);
     const freeRooms = getFreeRooms(serverData);
@@ -84,7 +83,7 @@ server.on("add_user_to_room", (passedData, serverData, ws, wss) => {
 
     const gameId = createNewGame(serverData, passedRoomIndex);
     const currentPlayers = chosenRoom.players;
-    delete rooms[ws.userGameInfo.roomInfo.createdRoomId];
+    // delete rooms[ws.userGameInfo.roomInfo.createdRoomId];
     ws.userGameInfo.roomInfo = {
       roomId: passedRoomIndex,
     };
@@ -109,7 +108,7 @@ server.on("add_user_to_room", (passedData, serverData, ws, wss) => {
   }
 
   const freeRooms = getFreeRooms(serverData);
-
+  console.log(serverData.rooms);
   wss.clients.forEach(client => {
     client.send(
       JSON.stringify({
@@ -129,6 +128,8 @@ server.on("add_ships", (passedData, serverData, ws, wss) => {
   ws.userGameInfo.roomInfo.currentPlayerId = indexPlayer;
 
   const inRoomNumber = ws.userGameInfo.roomInfo.createdRoomId;
+  console.log(serverData.rooms[inRoomNumber].games);
+
   const currentGame = serverData.rooms[inRoomNumber].games[gameId];
   currentGame[indexPlayer] = { ships: ships };
 
@@ -147,6 +148,16 @@ server.on("add_ships", (passedData, serverData, ws, wss) => {
           JSON.stringify({
             type: "start_game",
             data: JSON.stringify(objectForClient),
+            id: 0,
+          }),
+        );
+
+        client.send(
+          JSON.stringify({
+            type: "turn",
+            data: JSON.stringify({
+              currentPlayer: indexPlayer,
+            }),
             id: 0,
           }),
         );
