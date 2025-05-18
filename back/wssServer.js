@@ -1,5 +1,4 @@
 import { WebSocketServer } from "ws";
-import indexHandler from "./handlers/indexHandler.js";
 
 class HandmadeESocket {
   actions = [];
@@ -19,7 +18,6 @@ class HandmadeESocket {
 
           const type = dataParsed.type;
           const passedData = dataParsed.data;
-          const id = dataParsed.id;
 
           this.actions.forEach(({ actionType, callback }) => {
             if (actionType === type) {
