@@ -1,112 +1,123 @@
 import HandmadeESocket from "./wssServer.js";
-import generateUUID from "./helpers/uuid.js";
+import authentication from "./helpers/auth.js";
+import getFreeRooms from "./helpers/getFreeRooms.js";
+
+import { alphaNumericID } from "./helpers/uuid.js";
 
 const server = new HandmadeESocket();
 
-server.on("reg", (passedData, data, ws) => {
+server.on("reg", (passedData, data, ws, wss) => {
   const parsedData = JSON.parse(passedData);
   const userName = parsedData.name;
   const userPassword = parsedData.password;
-  const allUsers = data.users;
 
-  function addUser(name, password, users) {
-    const userId = generateUUID();
-    const userObject = {
-      name: name,
-      userId: "",
-      error: "",
-      errorText: "",
-    };
-
-    for (let elem in users) {
-      if (users[elem].name === name) {
-        userObject.userId = "";
-        userObject.error = true;
-        userObject.errorText = "Пользователь с таким именем уже существует.";
-        return userObject;
-      }
-    }
-
-    users[userId] = { name: name, password: password };
-
-    userObject.userId = userId;
-    userObject.error = false;
-    userObject.errorText = "";
-
-    ws.userGameInfo = {name: userName, userId: userId};
-
-    return userObject;
-  }
-
-  const resOfUserAdd = addUser(userName, userPassword, allUsers);
+  const resOfUserAdd = authentication(userName, userPassword, data, ws);
 
   ws.send(
     JSON.stringify({
       type: "reg",
       data: JSON.stringify(resOfUserAdd),
       id: 0,
-    })
+    }),
   );
+
+  const arrAllWinners = Object.keys(data.winners);
+  const allUsers = data.users;
+  const winnersForUpdate = arrAllWinners.map(key => {
+    return {
+      name: allUsers[key].name,
+      wins: data.winners[key],
+    };
+  });
+
+  const freeRooms = getFreeRooms(data);
+
+  wss.clients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(
+        JSON.stringify({
+          type: "update_winners",
+          data: JSON.stringify(winnersForUpdate),
+          id: 0,
+        }),
+      );
+
+      client.send(
+        JSON.stringify({
+          type: "update_room",
+          data: JSON.stringify(freeRooms),
+          id: 0,
+        }),
+      );
+    }
+  });
 });
 
-
-
-
-
-server.on("update_winners", (comingData, data) => {
-  console.log("update_winners");
-});
-
-
-
-
-server.on("create_room", (passedData, data, ws) => {
+server.on("create_room", (passedData, data, ws, wss) => {
   const rooms = data.rooms;
   const keysOfRooms = Object.keys(rooms);
   const newRoomIndex = keysOfRooms[keysOfRooms.length - 1]
-    ? +keysOfRooms[keysOfRooms.length - 1] + 1
+    ? Number(keysOfRooms[keysOfRooms.length - 1]) + 1
     : 1;
 
   rooms[newRoomIndex] = {
-    players: [ws.userId],
+    players: [ws.userGameInfo.userId],
   };
 
-  ws.send(
-    JSON.stringify({
-      type: "update_room",
-      data: 
-        JSON.stringify([{
-          roomId: `${newRoomIndex}`,
-          roomUsers: [
-            {
-              name: ws.userGameInfo.name,
-              index: ws.userGameInfo.userId,
-            },
-          ],
-        }]),
-      id: 0,
-    })
-  );
+  const freeRooms = getFreeRooms(data);
 
-  console.log(data, "rooms");
+  wss.clients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(
+        JSON.stringify({
+          type: "update_room",
+          data: JSON.stringify(freeRooms),
+          id: 0,
+        }),
+      );
+    }
+  });
 });
 
-server.on("add_user_to_room", (passedData, data, ws) => {
+server.on("add_user_to_room", (passedData, data, ws, wss) => {
   const rooms = data.rooms;
   const parsedData = JSON.parse(passedData);
   const passedRoomIndex = parsedData.indexRoom;
 
-  if (rooms[passedRoomIndex].players.length < 2) {
-    rooms[passedRoomIndex].players.push(ws.userId);
+  console.log(alphaNumericID());
+  if (
+    rooms[passedRoomIndex].players.length < 2 &&
+    !rooms[passedRoomIndex].players.includes(ws.userGameInfo.userId)
+  ) {
+    rooms[passedRoomIndex].players.push(ws.userGameInfo.userId);
+
+    rooms[passedRoomIndex]["games"] = {};
+    const gamesObject = rooms[passedRoomIndex]["games"];
+    const keysOfGames = Object.keys(gamesObject);
+    const newGameIndex = keysOfGames[keysOfGames.length - 1]
+      ? Number(keysOfGames[keysOfGames.length - 1]) + 1
+      : 1;
+
+    const currentPlayers = rooms[`${passedRoomIndex}`]["players"];
+
+    wss.clients.forEach(client => {
+      if (
+        client.readyState === WebSocket.OPEN &&
+        currentPlayers.includes(client.userGameInfo.userId)
+      ) {
+        client.send(
+          JSON.stringify({
+            type: "update_room",
+            data: JSON.stringify({
+              idGame: newGameIndex,
+              idPlayer: alphaNumericID(),
+            }),
+            id: 0,
+          }),
+        );
+      }
+    });
   }
-});
-
-server.on("create_game", (comingData, data) => {
-  console.log("create_game");
-});
-
-server.on("update_room", (comingData, data) => {
-  console.log("update_room");
 });
 
 server.on("add_ships", (comingData, data) => {

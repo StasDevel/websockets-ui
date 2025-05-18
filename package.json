@@ -14,7 +14,9 @@
     "keywords": [],
     "license": "ISC",
     "devDependencies": {
-        "nodemon": "^2.0.16"
+        "eslint": "^9.27.0",
+        "nodemon": "^2.0.16",
+        "prettier": "^3.5.3"
     },
     "dependencies": {
         "ws": "^8.8.0"
