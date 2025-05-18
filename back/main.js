@@ -108,7 +108,6 @@ server.on("add_user_to_room", (passedData, serverData, ws, wss) => {
   }
 
   const freeRooms = getFreeRooms(serverData);
-  console.log(serverData.rooms);
   wss.clients.forEach(client => {
     client.send(
       JSON.stringify({
@@ -127,18 +126,20 @@ server.on("add_ships", (passedData, serverData, ws, wss) => {
   const indexPlayer = parsedData.indexPlayer;
   ws.userGameInfo.roomInfo.currentPlayerId = indexPlayer;
 
-  const inRoomNumber = ws.userGameInfo.roomInfo.createdRoomId;
-  console.log(serverData.rooms[inRoomNumber].games);
+  const inRoomNumber = ws.userGameInfo.roomInfo.roomId;
+  console.log(serverData.rooms[inRoomNumber].games, 1);
 
-  const currentGame = serverData.rooms[inRoomNumber].games[gameId];
-  currentGame[indexPlayer] = { ships: ships };
+  const currentGame = serverData.rooms[inRoomNumber].games;
+  console.log(currentGame[`${gameId}`], 3);
+  currentGame[`${gameId}`][indexPlayer] = { ships: ships };
+  console.log(serverData.rooms[inRoomNumber].games, 2);
 
   const objectForClient = {
     ships: currentGame[indexPlayer],
     currentPlayerIndex: indexPlayer,
   };
 
-  if (Object.keys(currentGame).length == 2) {
+  if (Object.keys(currentGame[`${gameId}`]).length == 2) {
     wss.clients.forEach(client => {
       if (
         client.readyState === WebSocket.OPEN &&
