@@ -38,7 +38,15 @@ export default function authentication(name, password, data, ws) {
   userObject.error = false;
   userObject.errorText = "";
 
-  ws.userGameInfo = { name: name, userId: userId };
+  ws.userGameInfo = {
+    name: name,
+    userId: userId,
+    roomInfo: {
+      roomId: null,
+      createdRoomId: null,
+      currentPlayerId: null,
+    },
+  };
 
   return userObject;
 }

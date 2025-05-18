@@ -1,4 +1,5 @@
 import { WebSocketServer } from "ws";
+import getFreeRooms from "./helpers/getFreeRooms.js";
 
 class HandmadeESocket {
   actions = [];
@@ -30,7 +31,23 @@ class HandmadeESocket {
       });
 
       ws.on("close", () => {
-        console.log("Пользователь отключился");
+        const createdRoomByUser = ws.userGameInfo.roomInfo.createdRoomId;
+        if (createdRoomByUser) {
+          delete this.data.rooms[`${createdRoomByUser}`];
+          console.log(this.data);
+          const freeRooms = getFreeRooms(this.data);
+          wss.clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+              client.send(
+                JSON.stringify({
+                  type: "update_room",
+                  data: JSON.stringify(freeRooms),
+                  id: 0,
+                }),
+              );
+            }
+          });
+        }
       });
     });
 

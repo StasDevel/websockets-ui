@@ -5,11 +5,12 @@ export default function createNewRoom(serverData, ws) {
   const newRoomIndex = keysOfRooms[keysOfRooms.length - 1]
     ? Number(keysOfRooms[keysOfRooms.length - 1]) + 1
     : 1;
-  ws.userGameInfo.roomInfo = {
-    roomId: newRoomIndex,
-  };
+
   rooms[newRoomIndex] = {
     players: [ws.userGameInfo.userId],
     games: {},
   };
+  //Добавляет в объект ws сведения что юзер уже создавал комнату
+  ws.userGameInfo.roomInfo.createdRoomId = newRoomIndex;
+  ws.userGameInfo.roomInfo.roomId = newRoomIndex;
 }

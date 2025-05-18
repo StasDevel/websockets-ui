@@ -14,12 +14,12 @@ server.on("reg", (passedData, serverData, ws, wss) => {
   const userName = clientData.name;
   const userPassword = clientData.password;
 
-  const resOfUserAdd = authentication(userName, userPassword, serverData, ws);
+  const resOfUserAuth = authentication(userName, userPassword, serverData, ws);
 
   ws.send(
     JSON.stringify({
       type: "reg",
-      data: JSON.stringify(resOfUserAdd),
+      data: JSON.stringify(resOfUserAuth),
       id: 0,
     }),
   );
@@ -49,45 +49,13 @@ server.on("reg", (passedData, serverData, ws, wss) => {
 });
 
 server.on("create_room", (passedData, serverData, ws, wss) => {
-  createNewRoom(serverData, ws);
-
-  const freeRooms = getFreeRooms(serverData);
-
-  wss.clients.forEach(client => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(
-        JSON.stringify({
-          type: "update_room",
-          data: JSON.stringify(freeRooms),
-          id: 0,
-        }),
-      );
-    }
-  });
-});
-
-server.on("add_user_to_room", (passedData, serverData, ws, wss) => {
-  const rooms = serverData.rooms;
-  const clientData = JSON.parse(passedData);
-  const passedRoomIndex = clientData.indexRoom;
-  const chosenRoom = rooms[passedRoomIndex];
-  const userId = ws.userGameInfo.userId;
-
-  if (chosenRoom.players.length < 2 && !ws.userGameInfo.roomInfo) {
-    chosenRoom.players.push(userId);
-    ws.userGameInfo.roomInfo = {
-      roomId: passedRoomIndex,
-    };
-
-    const gameId = createNewGame(serverData, passedRoomIndex);
-    const currentPlayers = rooms[`${passedRoomIndex}`]["players"];
+  console.log(ws.userGameInfo);
+  if (!ws.userGameInfo.roomInfo.createdRoomId) {
+    createNewRoom(serverData, ws);
     const freeRooms = getFreeRooms(serverData);
 
     wss.clients.forEach(client => {
-      if (
-        client.readyState === WebSocket.OPEN &&
-        currentPlayers.includes(client.userGameInfo.userId)
-      ) {
+      if (client.readyState === WebSocket.OPEN) {
         client.send(
           JSON.stringify({
             type: "update_room",
@@ -95,6 +63,37 @@ server.on("add_user_to_room", (passedData, serverData, ws, wss) => {
             id: 0,
           }),
         );
+      }
+    });
+  }
+});
+
+server.on("add_user_to_room", (passedData, serverData, ws, wss) => {
+  const rooms = serverData.rooms;
+
+  const clientData = JSON.parse(passedData);
+  const passedRoomIndex = clientData.indexRoom;
+  const chosenRoom = rooms[passedRoomIndex];
+  const userId = ws.userGameInfo.userId;
+
+  if (
+    chosenRoom.players.length < 2 &&
+    ws.userGameInfo.roomInfo.createdRoomId != passedRoomIndex
+  ) {
+    chosenRoom.players.push(userId);
+
+    const gameId = createNewGame(serverData, passedRoomIndex);
+    const currentPlayers = chosenRoom.players;
+    delete rooms[ws.userGameInfo.roomInfo.createdRoomId];
+    ws.userGameInfo.roomInfo = {
+      roomId: passedRoomIndex,
+    };
+
+    wss.clients.forEach(client => {
+      if (
+        client.readyState === WebSocket.OPEN &&
+        currentPlayers.includes(client.userGameInfo.userId)
+      ) {
         client.send(
           JSON.stringify({
             type: "create_game",
@@ -108,7 +107,18 @@ server.on("add_user_to_room", (passedData, serverData, ws, wss) => {
       }
     });
   }
-  console.log(serverData);
+
+  const freeRooms = getFreeRooms(serverData);
+
+  wss.clients.forEach(client => {
+    client.send(
+      JSON.stringify({
+        type: "update_room",
+        data: JSON.stringify(freeRooms),
+        id: 0,
+      }),
+    );
+  });
 });
 
 server.on("add_ships", (passedData, serverData, ws, wss) => {
@@ -118,7 +128,7 @@ server.on("add_ships", (passedData, serverData, ws, wss) => {
   const indexPlayer = parsedData.indexPlayer;
   ws.userGameInfo.roomInfo.currentPlayerId = indexPlayer;
 
-  const inRoomNumber = ws.userGameInfo.roomInfo.roomId;
+  const inRoomNumber = ws.userGameInfo.roomInfo.createdRoomId;
   const currentGame = serverData.rooms[inRoomNumber].games[gameId];
   currentGame[indexPlayer] = { ships: ships };
 
@@ -128,11 +138,10 @@ server.on("add_ships", (passedData, serverData, ws, wss) => {
   };
 
   if (Object.keys(currentGame).length == 2) {
-    console.log(ws.userGameInfo.roomInfo.roomId == gameId, "must send");
     wss.clients.forEach(client => {
       if (
         client.readyState === WebSocket.OPEN &&
-        ws.userGameInfo.roomInfo.roomId == gameId
+        ws.userGameInfo.roomInfo.createdRoomId == gameId
       ) {
         client.send(
           JSON.stringify({
@@ -146,8 +155,8 @@ server.on("add_ships", (passedData, serverData, ws, wss) => {
   }
 });
 
-server.on("start_game", (comingData, data) => {
-  console.log("start_game");
+server.on("attack", (comingData, data) => {
+  console.log("attack");
 });
 
 server.createServer(3000);
