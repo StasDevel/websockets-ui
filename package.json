@@ -7,13 +7,28 @@
     "scripts": {
         "start": "node ./index.js",
         "start:dev": "nodemon ./index.js",
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "dev": "npx nodemon",
+        "start:ws": "tsc && node ./back/dist/main.js"
     },
     "author": "Andrei Auchynnikau",
     "keywords": [],
     "license": "ISC",
     "devDependencies": {
-        "nodemon": "^2.0.16"
+        "@babel/core": "^7.27.1",
+        "@babel/preset-env": "^7.27.2",
+        "@babel/preset-typescript": "^7.27.1",
+        "@eslint/js": "^9.24.0",
+        "@types/ws": "^8.18.1",
+        "@typescript-eslint/eslint-plugin": "^8.32.1",
+        "@typescript-eslint/parser": "^8.32.1",
+        "eslint": "^9.27.0",
+        "eslint-config-prettier": "^10.1.1",
+        "eslint-plugin-prettier": "^5.4.0",
+        "nodemon": "^3.1.9",
+        "prettier": "^3.5.3",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.8.3",
+        "typescript-eslint": "^8.29.1"
     },
     "dependencies": {
         "ws": "^8.8.0"
